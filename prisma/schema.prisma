@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  sessions     Session[]
+  documents    Document[]
+  chatSessions ChatSession[]
+  quizzes      Quiz[]
+  quizAttempts QuizAttempt[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum QuizDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuizQuestionType {
+  MCQ
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+model Quiz {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  difficulty  QuizDifficulty
+  questions   QuizQuestion[]
+  attempts    QuizAttempt[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model QuizQuestion {
+  id            String           @id @default(cuid())
+  quizId        String
+  quiz          Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  position      Int
+  type          QuizQuestionType
+  prompt        String           @db.Text
+  options       Json?
+  correctAnswer String           @db.Text
+  explanation   String           @db.Text
+  answers       QuizAnswer[]
+
+  @@unique([quizId, position])
+}
+
+model QuizAttempt {
+  id          String       @id @default(cuid())
+  quizId      String
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score       Float
+  submittedAt DateTime     @default(now())
+  answers     QuizAnswer[]
+
+  @@index([userId, submittedAt])
+  @@index([quizId])
+}
+
+model QuizAnswer {
+  id          String      @id @default(cuid())
+  attemptId   String
+  attempt     QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answer      String      @db.Text
+  isCorrect   Boolean
+  feedback    String      @db.Text
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+}
+
+enum ExplanationMode {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXAM
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id          String          @id @default(cuid())
+  sessionId   String
+  session     ChatSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role        ChatRole
+  content     String          @db.Text
+  mode        ExplanationMode?
+  sourceRefs  Json?
+  createdAt   DateTime        @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+enum DocumentStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  mimeType      String
+  byteSize      Int
+  fileData      Bytes
+  extractedText String         @db.Text
+  status        DocumentStatus @default(PROCESSING)
+  chunks        DocumentChunk[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model DocumentChunk {
+  id         String   @id
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  chunkIndex Int
+  tokenCount Int
+  embedding  Unsupported("vector(1536)")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}

@@ -1,0 +1,18 @@
+CREATE TYPE "QuizDifficulty" AS ENUM ('EASY', 'MEDIUM', 'HARD');
+CREATE TYPE "QuizQuestionType" AS ENUM ('MCQ', 'TRUE_FALSE', 'SHORT_ANSWER');
+CREATE TABLE "Quiz" ("id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL, "title" TEXT NOT NULL, "difficulty" "QuizDifficulty" NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL);
+CREATE TABLE "QuizQuestion" ("id" TEXT PRIMARY KEY, "quizId" TEXT NOT NULL, "position" INTEGER NOT NULL, "type" "QuizQuestionType" NOT NULL, "prompt" TEXT NOT NULL, "options" JSONB, "correctAnswer" TEXT NOT NULL, "explanation" TEXT NOT NULL);
+CREATE TABLE "QuizAttempt" ("id" TEXT PRIMARY KEY, "quizId" TEXT NOT NULL, "userId" TEXT NOT NULL, "score" DOUBLE PRECISION NOT NULL, "submittedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE "QuizAnswer" ("id" TEXT PRIMARY KEY, "attemptId" TEXT NOT NULL, "questionId" TEXT NOT NULL, "answer" TEXT NOT NULL, "isCorrect" BOOLEAN NOT NULL, "feedback" TEXT NOT NULL);
+CREATE INDEX "Quiz_userId_createdAt_idx" ON "Quiz"("userId", "createdAt");
+CREATE UNIQUE INDEX "QuizQuestion_quizId_position_key" ON "QuizQuestion"("quizId", "position");
+CREATE INDEX "QuizAttempt_userId_submittedAt_idx" ON "QuizAttempt"("userId", "submittedAt");
+CREATE INDEX "QuizAttempt_quizId_idx" ON "QuizAttempt"("quizId");
+CREATE UNIQUE INDEX "QuizAnswer_attemptId_questionId_key" ON "QuizAnswer"("attemptId", "questionId");
+CREATE INDEX "QuizAnswer_questionId_idx" ON "QuizAnswer"("questionId");
+ALTER TABLE "Quiz" ADD CONSTRAINT "Quiz_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE;
+ALTER TABLE "QuizQuestion" ADD CONSTRAINT "QuizQuestion_quizId_fkey" FOREIGN KEY ("quizId") REFERENCES "Quiz"("id") ON DELETE CASCADE;
+ALTER TABLE "QuizAttempt" ADD CONSTRAINT "QuizAttempt_quizId_fkey" FOREIGN KEY ("quizId") REFERENCES "Quiz"("id") ON DELETE CASCADE;
+ALTER TABLE "QuizAttempt" ADD CONSTRAINT "QuizAttempt_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE;
+ALTER TABLE "QuizAnswer" ADD CONSTRAINT "QuizAnswer_attemptId_fkey" FOREIGN KEY ("attemptId") REFERENCES "QuizAttempt"("id") ON DELETE CASCADE;
+ALTER TABLE "QuizAnswer" ADD CONSTRAINT "QuizAnswer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "QuizQuestion"("id") ON DELETE CASCADE;
