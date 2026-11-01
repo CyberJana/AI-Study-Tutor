@@ -69,6 +69,13 @@ npm run dev
 
 Open `http://localhost:3000`, create an account, and you will be redirected to the protected dashboard.
 
+## Deploy (Vercel)
+
+1. Create a Postgres database with pgvector (Neon or Supabase) and run `CREATE EXTENSION IF NOT EXISTS vector;`.
+2. Import this repository at [vercel.com/new](https://vercel.com/new). `vercel.json` sets the build command to generate the Prisma client, apply migrations, and build.
+3. Add environment variables in Vercel: `DATABASE_URL` (use a direct, non-pooled connection so migrations can run), `AUTH_SECRET` (32+ random characters, e.g. `openssl rand -base64 32`), and `OPENAI_API_KEY`.
+4. Deploy, then open the generated URL or attach a custom domain.
+
 ## Database and pgvector
 
 The initial migration enables `vector`, then creates `User`, `Session`, `Document`, and `DocumentChunk` models. `DocumentChunk.embedding` uses `vector(1536)` and an ivfflat cosine-distance index, matching `text-embedding-3-small`.
